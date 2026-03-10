@@ -7,10 +7,61 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.example.demo.domain.discount.DiscountType;
 import com.example.demo.domain.discount.FullReductionDiscount;
 import com.example.demo.domain.dish.DishId;
 
 public class PricingTest {
+  /**
+   * 商品总价远高于门槛，确保只应用一次优惠（非叠加）
+   */
+  @Test
+  void final_amount_should_apply_discount_only_once_when_total_much_higher_than_threshold() {
+    FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("50"), new BigDecimal("5"));
+    OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 4, new BigDecimal("30")); // 商品总价120
+    List<OrderItem> items = List.of(item1);
+    Pricing pricing = Pricing.calculate(items, discount);
+    assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("120.00"));
+    assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("119.00")); // 120+1+3-5=119
+    assertThat(pricing.discountInfo().hasDiscount()).isTrue();
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("5.00"));
+    assertThat(pricing.discountInfo().description()).isEqualTo("满50减5");
+    assertThat(pricing.discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
+  }
+
+  /**
+   * 优惠后金额为负数，最终金额应为0元
+   */
+  @Test
+  void final_amount_should_not_be_negative_when_discount_exceeds_total() {
+    FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("5"), new BigDecimal("100"));
+    OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 1, new BigDecimal("5")); // 商品总价5
+    List<OrderItem> items = List.of(item1);
+    Pricing pricing = Pricing.calculate(items, discount);
+    assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("5.00"));
+    assertThat(pricing.finalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(pricing.discountInfo().hasDiscount()).isTrue();
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("100.00"));
+    assertThat(pricing.discountInfo().description()).isEqualTo("满5减100");
+    assertThat(pricing.discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
+  }
+
+  /**
+   * 金额精度校验：商品总价/优惠金额为小数，最终金额保留两位小数，四舍五入
+   */
+  @Test
+  void final_amount_should_round_to_two_decimal_places() {
+    FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("50.555"), new BigDecimal("5.555"));
+    OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("25.2775")); // 商品总价50.555
+    List<OrderItem> items = List.of(item1);
+    Pricing pricing = Pricing.calculate(items, discount);
+    assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("50.56")); // 四舍五入
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("5.56")); // 四舍五入
+    assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("49.00")); // 50.56+1+3-5.56=49.00
+    assertThat(pricing.discountInfo().hasDiscount()).isTrue();
+    assertThat(pricing.discountInfo().description()).isEqualTo("满50.555减5.555");
+    assertThat(pricing.discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
+  }
 
   /**
    * 商家配置了一个满减规则，订单金额满足条件时正确应用优惠
@@ -28,6 +79,11 @@ public class PricingTest {
     assertThat(pricing.packagingFee()).isEqualByComparingTo(Pricing.PACKAGING_FEE);
     assertThat(pricing.deliveryFee()).isEqualByComparingTo(Pricing.DELIVERY_FEE);
     assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("59.00"));
+    // 折扣信息断言
+    assertThat(pricing.discountInfo().hasDiscount()).isTrue();
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("5.00"));
+    assertThat(pricing.discountInfo().description()).isEqualTo("满50减5");
+    assertThat(pricing.discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
 
   }
 
@@ -47,6 +103,11 @@ public class PricingTest {
     assertThat(pricing.packagingFee()).isEqualByComparingTo(Pricing.PACKAGING_FEE);
     assertThat(pricing.deliveryFee()).isEqualByComparingTo(Pricing.DELIVERY_FEE);
     assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("49.00"));
+    // 折扣信息断言
+    assertThat(pricing.discountInfo().hasDiscount()).isTrue();
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("5.00"));
+    assertThat(pricing.discountInfo().description()).isEqualTo("满50减5");
+    assertThat(pricing.discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
   }
 
   /**
@@ -65,6 +126,11 @@ public class PricingTest {
     assertThat(pricing.packagingFee()).isEqualByComparingTo(Pricing.PACKAGING_FEE);
     assertThat(pricing.deliveryFee()).isEqualByComparingTo(Pricing.DELIVERY_FEE);
     assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("64.00"));
+    // 折扣信息断言
+    assertThat(pricing.discountInfo().hasDiscount()).isFalse();
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(pricing.discountInfo().description()).isNull();
+    assertThat(pricing.discountInfo().type()).isNull();
 
   }
 
@@ -81,59 +147,123 @@ public class PricingTest {
     assertThat(pricing.packagingFee()).isEqualByComparingTo(Pricing.PACKAGING_FEE);
     assertThat(pricing.deliveryFee()).isEqualByComparingTo(Pricing.DELIVERY_FEE);
     assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("64.00"));
+    // 折扣信息断言
+    assertThat(pricing.discountInfo().hasDiscount()).isFalse();
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(BigDecimal.ZERO);
+    assertThat(pricing.discountInfo().description()).isNull();
+    assertThat(pricing.discountInfo().type()).isNull();
 
   }
 
   /**
-   * 规则配置无效时，订单价格不受影响：
-   * 场景1：优惠门槛为负数，订单金额为60，不满足条件，无优惠
-   * 场景2：优惠门槛为0，订单金额为60，满足条件，优惠金额为5，最终金额为60 + 1 + 3 - 5 = 59
-   * 场景3：优惠金额为负数或者0，门槛为50，订单金额为60，满足条件，但优惠金额无效，不应用优惠
+   * 不合法的规则配置
+   * 场景1：优惠门槛为null/负数
+   * 场景2：优惠金额为null/负数/0
    */
-  /*
-   * @Test
-   * void final_amount_should_no_change_when_have_a_invalid_discount() {
-   * // 场景1：优惠门槛为负数，订单金额为60，不满足条件，无优惠
-   * FullReductionDiscount discount1 = new FullReductionDiscount(new
-   * BigDecimal("-50"),
-   * new BigDecimal("5"));
-   * OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new
-   * BigDecimal("30"));
-   * List<OrderItem> items1 = List.of(item1);
-   * Pricing pricing1 = Pricing.calculate(items1, discount1);
-   * 
-   * assertThat(pricing1.finalAmount()).isEqualByComparingTo(new
-   * BigDecimal("64.00"));
-   * 
-   * // 场景2：优惠门槛为0，订单金额为60，满足条件，优惠金额为5，最终金额为60 + 1 + 3 - 5 = 59
-   * FullReductionDiscount discount2 = new FullReductionDiscount(BigDecimal.ZERO,
-   * new BigDecimal("5"));
-   * Pricing pricing2 = Pricing.calculate(items1, discount2);
-   * 
-   * assertThat(pricing2.finalAmount()).isEqualByComparingTo(new
-   * BigDecimal("59.00"));
-   * 
-   * // 场景3：优惠金额为负数或者0，门槛为50，订单金额为60，满足条件，但优惠金额无效，不应用优惠
-   * FullReductionDiscount discount3 = new FullReductionDiscount(new
-   * BigDecimal("50"),
-   * new BigDecimal("-5"));
-   * Pricing pricing3 = Pricing.calculate(items1, discount3);
-   * 
-   * assertThat(pricing3.finalAmount()).isEqualByComparingTo(new
-   * BigDecimal("64.00"));
-   * 
-   * FullReductionDiscount discount4 = new FullReductionDiscount(new
-   * BigDecimal("50"),
-   * BigDecimal.ZERO);
-   * Pricing pricing4 = Pricing.calculate(items1, discount4);
-   * 
-   * assertThat(pricing4.finalAmount()).isEqualByComparingTo(new
-   * BigDecimal("64.00"));
-   * }
-   */
+
+  @Test
+  void null_threshold_should_throw_exception() {
+    Throwable thrown = null;
+    try {
+      new FullReductionDiscount(null, new BigDecimal("5"));
+    } catch (Throwable e) {
+      thrown = e;
+    }
+    assertThat(thrown)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Threshold cannot be null");
+  }
+
+  @Test
+  void negative_threshold_should_throw_exception() {
+    Throwable thrown = null;
+    try {
+      new FullReductionDiscount(new BigDecimal("-50"), new BigDecimal("5"));
+    } catch (Throwable e) {
+      thrown = e;
+    }
+    assertThat(thrown)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Threshold cannot be negative");
+  }
+
+  @Test
+  void null_discount_amount_should_throw_exception() {
+    Throwable thrown = null;
+    try {
+      new FullReductionDiscount(new BigDecimal("50"), null);
+    } catch (Throwable e) {
+      thrown = e;
+    }
+    assertThat(thrown)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Discount amount cannot be null");
+  }
+
+  @Test
+  void negative_discount_amount_should_throw_exception() {
+    Throwable thrown = null;
+    try {
+      new FullReductionDiscount(new BigDecimal("50"), new BigDecimal("-5"));
+    } catch (Throwable e) {
+      thrown = e;
+    }
+    assertThat(thrown)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Discount amount cannot be negative");
+  }
+
+  @Test
+  void zero_discount_amount_should_throw_exception() {
+    Throwable thrown = null;
+    try {
+      new FullReductionDiscount(new BigDecimal("50"), BigDecimal.ZERO);
+    } catch (Throwable e) {
+      thrown = e;
+    }
+    assertThat(thrown)
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Discount amount cannot be zero");
+  }
+
   /**
-   * 订单响应中应包含折扣信息
+   * 优惠门槛为0，订单金额为60，满足条件，优惠金额为5，最终金额为60 + 1 + 3 - 5 = 59
    */
+  @Test
+  void final_amount_should_calculate_correctly_when_have_a_discount_with_zero_threshold() {
+    FullReductionDiscount discount = new FullReductionDiscount(BigDecimal.ZERO,
+        new BigDecimal("5"));
+
+    OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("30"));
+    List<OrderItem> items = List.of(item1);
+    Pricing pricing = Pricing.calculate(items, discount);
+    assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("60.00"));
+    assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("59.00"));
+    // 折扣信息断言
+    assertThat(pricing.discountInfo().hasDiscount()).isTrue();
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("5.00"));
+    assertThat(pricing.discountInfo().description()).isEqualTo("满0减5");
+    assertThat(pricing.discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
+  }
+
+  /**
+   * 计算完毕的价格中应包含折扣信息
+   */
+  @Test
+  void calculated_pricing_should_contain_discount_info() {
+    FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("50"),
+        new BigDecimal("5"));
+
+    OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("30"));
+    List<OrderItem> items = List.of(item1);
+    Pricing pricing = Pricing.calculate(items, discount);
+
+    assertThat(pricing.discountInfo().hasDiscount()).isEqualTo(true);
+    assertThat(pricing.discountInfo().description()).isEqualTo("满50减5");
+    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("5.00"));
+    assertThat(pricing.discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
+
+  }
 
   /**
    * 测试当有多个优惠时，能够正确计算最终价格：

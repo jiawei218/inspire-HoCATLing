@@ -6,6 +6,8 @@ import java.util.Optional;
 public interface Discount {
   DiscountType getType();
 
+  String getDescription();
+
   /**
    * 计算可应用的优惠金额
    * 

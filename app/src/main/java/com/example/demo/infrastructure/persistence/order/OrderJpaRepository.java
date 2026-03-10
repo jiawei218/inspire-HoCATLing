@@ -23,105 +23,107 @@ import org.springframework.stereotype.Component;
 
 /**
  * JPA implementation of OrderRepository.
- * This is an infrastructure adapter that implements the domain repository interface.
+ * This is an infrastructure adapter that implements the domain repository
+ * interface.
  */
 @Component
 @RequiredArgsConstructor
 public class OrderJpaRepository implements OrderRepository {
 
-    private final OrderEntityRepository orderEntityRepository;
+        private final OrderEntityRepository orderEntityRepository;
 
-    @Override
-    public void save(Order order) {
-        OrderEntity entity = toEntity(order);
-        orderEntityRepository.save(entity);
-    }
+        @Override
+        public void save(Order order) {
+                OrderEntity entity = toEntity(order);
+                orderEntityRepository.save(entity);
+        }
 
-    @Override
-    public Optional<Order> findById(OrderId orderId) {
-        return orderEntityRepository.findById(orderId.value()).map(this::toDomain);
-    }
+        @Override
+        public Optional<Order> findById(OrderId orderId) {
+                return orderEntityRepository.findById(orderId.value()).map(this::toDomain);
+        }
 
-    private OrderEntity toEntity(Order order) {
-        OrderEntity entity = new OrderEntity();
-        entity.setId(order.getId().value());
-        entity.setOrderNumber(order.getOrderNumber().value());
-        entity.setUserId(order.getUserId().value());
-        entity.setMerchantId(order.getMerchantId().value());
+        private OrderEntity toEntity(Order order) {
+                OrderEntity entity = new OrderEntity();
+                entity.setId(order.getId().value());
+                entity.setOrderNumber(order.getOrderNumber().value());
+                entity.setUserId(order.getUserId().value());
+                entity.setMerchantId(order.getMerchantId().value());
 
-        // Convert order items
-        List<OrderItemEntity> itemEntities = order.getItems().stream()
-                .map(item -> {
-                    OrderItemEntity itemEntity = new OrderItemEntity();
-                    itemEntity.setOrderId(order.getId().value());
-                    itemEntity.setDishId(item.dishId().value());
-                    itemEntity.setDishName(item.dishName());
-                    itemEntity.setQuantity(item.quantity());
-                    itemEntity.setPrice(item.price());
-                    return itemEntity;
-                })
-                .collect(Collectors.toList());
-        entity.setItems(itemEntities);
+                // Convert order items
+                List<OrderItemEntity> itemEntities = order.getItems().stream()
+                                .map(item -> {
+                                        OrderItemEntity itemEntity = new OrderItemEntity();
+                                        itemEntity.setOrderId(order.getId().value());
+                                        itemEntity.setDishId(item.dishId().value());
+                                        itemEntity.setDishName(item.dishName());
+                                        itemEntity.setQuantity(item.quantity());
+                                        itemEntity.setPrice(item.price());
+                                        return itemEntity;
+                                })
+                                .collect(Collectors.toList());
+                entity.setItems(itemEntities);
 
-        // Convert delivery info
-        DeliveryInfoEmbeddable deliveryInfoEmbeddable = new DeliveryInfoEmbeddable(
-                order.getDeliveryInfo().recipientName(),
-                order.getDeliveryInfo().recipientPhone(),
-                order.getDeliveryInfo().address());
-        entity.setDeliveryInfo(deliveryInfoEmbeddable);
+                // Convert delivery info
+                DeliveryInfoEmbeddable deliveryInfoEmbeddable = new DeliveryInfoEmbeddable(
+                                order.getDeliveryInfo().recipientName(),
+                                order.getDeliveryInfo().recipientPhone(),
+                                order.getDeliveryInfo().address());
+                entity.setDeliveryInfo(deliveryInfoEmbeddable);
 
-        entity.setRemark(order.getRemark());
-        entity.setStatus(order.getStatus());
+                entity.setRemark(order.getRemark());
+                entity.setStatus(order.getStatus());
 
-        // Convert pricing
-        PricingEmbeddable pricingEmbeddable = new PricingEmbeddable(
-                order.getPricing().itemsTotal(),
-                order.getPricing().packagingFee(),
-                order.getPricing().deliveryFee(),
-                order.getPricing().finalAmount());
-        entity.setPricing(pricingEmbeddable);
+                // Convert pricing
+                PricingEmbeddable pricingEmbeddable = new PricingEmbeddable(
+                                order.getPricing().itemsTotal(),
+                                order.getPricing().packagingFee(),
+                                order.getPricing().deliveryFee(),
+                                order.getPricing().finalAmount());
+                entity.setPricing(pricingEmbeddable);
 
-        entity.setCreatedAt(order.getCreatedAt());
-        entity.setUpdatedAt(order.getUpdatedAt());
+                entity.setCreatedAt(order.getCreatedAt());
+                entity.setUpdatedAt(order.getUpdatedAt());
 
-        return entity;
-    }
+                return entity;
+        }
 
-    private Order toDomain(OrderEntity entity) {
-        // Convert order items
-        List<OrderItem> items = entity.getItems().stream()
-                .map(itemEntity -> new OrderItem(
-                        new DishId(itemEntity.getDishId()),
-                        itemEntity.getDishName(),
-                        itemEntity.getQuantity(),
-                        itemEntity.getPrice()))
-                .collect(Collectors.toList());
+        private Order toDomain(OrderEntity entity) {
+                // Convert order items
+                List<OrderItem> items = entity.getItems().stream()
+                                .map(itemEntity -> new OrderItem(
+                                                new DishId(itemEntity.getDishId()),
+                                                itemEntity.getDishName(),
+                                                itemEntity.getQuantity(),
+                                                itemEntity.getPrice()))
+                                .collect(Collectors.toList());
 
-        // Convert delivery info
-        DeliveryInfo deliveryInfo = new DeliveryInfo(
-                entity.getDeliveryInfo().getRecipientName(),
-                entity.getDeliveryInfo().getRecipientPhone(),
-                entity.getDeliveryInfo().getAddress());
+                // Convert delivery info
+                DeliveryInfo deliveryInfo = new DeliveryInfo(
+                                entity.getDeliveryInfo().getRecipientName(),
+                                entity.getDeliveryInfo().getRecipientPhone(),
+                                entity.getDeliveryInfo().getAddress());
 
-        // Convert pricing
-        Pricing pricing = new Pricing(
-                entity.getPricing().getItemsTotal(),
-                entity.getPricing().getPackagingFee(),
-                entity.getPricing().getDeliveryFee(),
-                entity.getPricing().getFinalAmount());
+                // Convert pricing
+                Pricing pricing = new Pricing(
+                                entity.getPricing().getItemsTotal(),
+                                entity.getPricing().getPackagingFee(),
+                                entity.getPricing().getDeliveryFee(),
+                                entity.getPricing().getDiscountInfo(),
+                                entity.getPricing().getFinalAmount());
 
-        // Use reconstitution constructor
-        return new Order(
-                new OrderId(entity.getId()),
-                new OrderNumber(entity.getOrderNumber()),
-                new UserId(entity.getUserId()),
-                new MerchantId(entity.getMerchantId()),
-                items,
-                deliveryInfo,
-                entity.getRemark(),
-                entity.getStatus(),
-                pricing,
-                entity.getCreatedAt(),
-                entity.getUpdatedAt());
-    }
+                // Use reconstitution constructor
+                return new Order(
+                                new OrderId(entity.getId()),
+                                new OrderNumber(entity.getOrderNumber()),
+                                new UserId(entity.getUserId()),
+                                new MerchantId(entity.getMerchantId()),
+                                items,
+                                deliveryInfo,
+                                entity.getRemark(),
+                                entity.getStatus(),
+                                pricing,
+                                entity.getCreatedAt(),
+                                entity.getUpdatedAt());
+        }
 }
