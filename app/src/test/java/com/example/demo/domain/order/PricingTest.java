@@ -20,7 +20,7 @@ public class PricingTest {
     FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("50"), new BigDecimal("5"));
     OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 4, new BigDecimal("30")); // 商品总价120
     List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, discount);
+    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
     assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("120.00"));
     assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("119.00")); // 120+1+3-5=119
     assertThat(pricing.discountInfo().hasDiscount()).isTrue();
@@ -37,7 +37,7 @@ public class PricingTest {
     FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("5"), new BigDecimal("100"));
     OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 1, new BigDecimal("5")); // 商品总价5
     List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, discount);
+    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
     assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("5.00"));
     assertThat(pricing.finalAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     assertThat(pricing.discountInfo().hasDiscount()).isTrue();
@@ -54,7 +54,7 @@ public class PricingTest {
     FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("50.555"), new BigDecimal("5.555"));
     OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("25.2775")); // 商品总价50.555
     List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, discount);
+    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
     assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("50.56")); // 四舍五入
     assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("5.56")); // 四舍五入
     assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("49.00")); // 50.56+1+3-5.56=49.00
@@ -73,7 +73,7 @@ public class PricingTest {
 
     OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("30"));
     List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, discount);
+    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
 
     assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("60.00"));
     assertThat(pricing.packagingFee()).isEqualByComparingTo(Pricing.PACKAGING_FEE);
@@ -97,7 +97,7 @@ public class PricingTest {
 
     OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("25"));
     List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, discount);
+    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
 
     assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("50.00"));
     assertThat(pricing.packagingFee()).isEqualByComparingTo(Pricing.PACKAGING_FEE);
@@ -120,7 +120,7 @@ public class PricingTest {
 
     OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("30"));
     List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, discount);
+    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
 
     assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("60.00"));
     assertThat(pricing.packagingFee()).isEqualByComparingTo(Pricing.PACKAGING_FEE);
@@ -236,7 +236,7 @@ public class PricingTest {
 
     OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("30"));
     List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, discount);
+    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
     assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("60.00"));
     assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("59.00"));
     // 折扣信息断言
@@ -256,7 +256,7 @@ public class PricingTest {
 
     OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("30"));
     List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, discount);
+    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
 
     assertThat(pricing.discountInfo().hasDiscount()).isEqualTo(true);
     assertThat(pricing.discountInfo().description()).isEqualTo("满50减5");
