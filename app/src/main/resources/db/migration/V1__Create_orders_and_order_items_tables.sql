@@ -11,22 +11,16 @@ CREATE
             address VARCHAR(500) NOT NULL, -- Remark
             remark VARCHAR(200), -- Status
             status VARCHAR(20) NOT NULL, -- Pricing information
-            items_total DECIMAL(
-                10,
-                2
-            ) NOT NULL,
-            packaging_fee DECIMAL(
-                10,
-                2
-            ) NOT NULL,
-            delivery_fee DECIMAL(
-                10,
-                2
-            ) NOT NULL,
-            final_amount DECIMAL(
-                10,
-                2
-            ) NOT NULL, -- Timestamps
+            items_total DECIMAL(10,2) NOT NULL,
+            packaging_fee DECIMAL(10,2) NOT NULL,
+            delivery_fee DECIMAL(10,2) NOT NULL,
+            final_amount DECIMAL(10,2) NOT NULL,
+            -- Discount fields
+            discount_applied BOOLEAN DEFAULT FALSE,
+            discount_description VARCHAR(255),
+            discount_amount DECIMAL(19,2),
+            discount_type VARCHAR(32),
+            -- Timestamps
             created_at TIMESTAMP NOT NULL,
             updated_at TIMESTAMP NOT NULL
         );
