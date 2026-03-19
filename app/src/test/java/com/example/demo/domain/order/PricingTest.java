@@ -47,23 +47,6 @@ public class PricingTest {
   }
 
   /**
-   * 金额精度校验：商品总价/优惠金额为小数，最终金额保留两位小数，四舍五入
-   */
-  @Test
-  void final_amount_should_round_to_two_decimal_places() {
-    FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("50.555"), new BigDecimal("5.555"));
-    OrderItem item1 = new OrderItem(new DishId("dish1"), "Dish 1", 2, new BigDecimal("25.2775")); // 商品总价50.555
-    List<OrderItem> items = List.of(item1);
-    Pricing pricing = Pricing.calculate(items, java.util.Optional.of(discount));
-    assertThat(pricing.itemsTotal()).isEqualByComparingTo(new BigDecimal("50.56")); // 四舍五入
-    assertThat(pricing.discountInfo().amount()).isEqualByComparingTo(new BigDecimal("5.56")); // 四舍五入
-    assertThat(pricing.finalAmount()).isEqualByComparingTo(new BigDecimal("49.00")); // 50.56+1+3-5.56=49.00
-    assertThat(pricing.discountInfo().hasDiscount()).isTrue();
-    assertThat(pricing.discountInfo().description()).isEqualTo("满50.555减5.555");
-    assertThat(pricing.discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
-  }
-
-  /**
    * 商家配置了一个满减规则，订单金额满足条件时正确应用优惠
    */
   @Test

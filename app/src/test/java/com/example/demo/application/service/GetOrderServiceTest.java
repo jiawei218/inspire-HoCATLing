@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import com.example.demo.application.service.GetOrderService.GetOrderQuery;
 import com.example.demo.application.service.GetOrderService.GetOrderResult;
+import com.example.demo.domain.discount.DiscountType;
+import com.example.demo.domain.discount.FullReductionDiscount;
 import com.example.demo.domain.dish.DishId;
 import com.example.demo.domain.merchant.MerchantId;
 import com.example.demo.domain.order.DeliveryInfo;
@@ -97,6 +99,81 @@ class GetOrderServiceTest {
         assertThat(result.pricing().packagingFee()).isEqualByComparingTo(new BigDecimal("1.00"));
         assertThat(result.pricing().deliveryFee()).isEqualByComparingTo(new BigDecimal("3.00"));
         assertThat(result.pricing().finalAmount()).isEqualByComparingTo(new BigDecimal("54.00"));
+        assertThat(result.pricing().discountInfo().hasDiscount()).isEqualTo(false);
+        assertThat(result.pricing().discountInfo().type()).isEqualTo(null);
+        assertThat(result.pricing().discountInfo().description()).isEqualTo(null);
+        assertThat(result.pricing().discountInfo().amount()).isEqualByComparingTo(BigDecimal.ZERO);
+
+    }
+
+    @Test
+    void for_order_meet_discount_should_have_discount_info_when_return_order_details() {
+        // Given
+        String orderId = "order-001";
+        String userId = "user-001";
+        String merchantId = "merchant-001";
+
+        OrderItem item = new OrderItem(new DishId("dish-001"), "宫保鸡丁", 2, new BigDecimal("25.00"));
+        DeliveryInfo deliveryInfo = new DeliveryInfo("张三", "13800138000", "北京市朝阳区某某街道123号");
+
+        FullReductionDiscount discount = new FullReductionDiscount(new BigDecimal("50.00"), new BigDecimal("20.00"));
+
+        Pricing pricing = Pricing.calculate(List.of(item), Optional.of(discount));
+        Instant createdAt = Instant.parse("2025-01-04T12:00:00Z");
+
+        Order order = new Order(
+                new OrderId(orderId),
+                new OrderNumber("20250104120000123456"),
+                new UserId(userId),
+                new MerchantId(merchantId),
+                List.of(item),
+                deliveryInfo,
+                "少辣",
+                OrderStatus.PENDING_PAYMENT,
+                pricing,
+                createdAt,
+                createdAt);
+
+        when(orderRepository.findById(new OrderId(orderId))).thenReturn(Optional.of(order));
+
+        GetOrderQuery query = new GetOrderQuery(orderId, userId);
+
+        // When
+        GetOrderResult result = getOrderService.getOrder(query);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.orderId()).isEqualTo(orderId);
+        assertThat(result.orderNumber()).isEqualTo("20250104120000123456");
+        assertThat(result.userId()).isEqualTo(userId);
+        assertThat(result.merchantId()).isEqualTo(merchantId);
+        assertThat(result.remark()).isEqualTo("少辣");
+        assertThat(result.status()).isEqualTo("PENDING_PAYMENT");
+        assertThat(result.createdAt()).isEqualTo(createdAt);
+
+        // Verify items
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().get(0).dishId()).isEqualTo("dish-001");
+        assertThat(result.items().get(0).dishName()).isEqualTo("宫保鸡丁");
+        assertThat(result.items().get(0).quantity()).isEqualTo(2);
+        assertThat(result.items().get(0).price()).isEqualByComparingTo(new BigDecimal("25.00"));
+
+        // Verify delivery info
+        assertThat(result.deliveryInfo()).isNotNull();
+        assertThat(result.deliveryInfo().recipientName()).isEqualTo("张三");
+        assertThat(result.deliveryInfo().recipientPhone()).isEqualTo("13800138000");
+        assertThat(result.deliveryInfo().address()).isEqualTo("北京市朝阳区某某街道123号");
+
+        // Verify pricing
+        assertThat(result.pricing()).isNotNull();
+        assertThat(result.pricing().itemsTotal()).isEqualByComparingTo(new BigDecimal("50.00"));
+        assertThat(result.pricing().packagingFee()).isEqualByComparingTo(new BigDecimal("1.00"));
+        assertThat(result.pricing().deliveryFee()).isEqualByComparingTo(new BigDecimal("3.00"));
+        assertThat(result.pricing().finalAmount()).isEqualByComparingTo(new BigDecimal("34.00"));
+        assertThat(result.pricing().discountInfo().hasDiscount()).isEqualTo(true);
+        assertThat(result.pricing().discountInfo().type()).isEqualTo(DiscountType.FULL_REDUCTION);
+        assertThat(result.pricing().discountInfo().description()).isEqualTo("满50减20");
+        assertThat(result.pricing().discountInfo().amount()).isEqualByComparingTo(new BigDecimal("20.00"));
     }
 
     @Test

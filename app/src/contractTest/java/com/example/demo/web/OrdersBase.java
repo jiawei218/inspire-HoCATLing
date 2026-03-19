@@ -7,7 +7,10 @@ import static org.mockito.Mockito.*;
 
 import com.example.demo.application.service.CreateOrderService;
 import com.example.demo.application.service.GetOrderService;
+import com.example.demo.application.service.GetOrderService.GetOrderResult.PricingDto.DiscountInfomDto;
 import com.example.demo.application.service.OrderNotFoundException;
+import com.example.demo.application.service.CreateOrderService.CreateOrderResult.DiscountInfoDto;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -32,19 +35,22 @@ public abstract class OrdersBase extends ContractTestBase {
             BigDecimal packagingFee = new BigDecimal("1.00");
             BigDecimal deliveryFee = new BigDecimal("3.00");
             BigDecimal finalAmount = itemsTotal.add(packagingFee).add(deliveryFee);
+            DiscountInfoDto discountInfo = null;
 
             return new CreateOrderService.CreateOrderResult(
                     "order-id-1",
                     "20251105102730996280",
                     "PENDING_PAYMENT",
                     new CreateOrderService.CreateOrderResult.PricingDto(
-                            itemsTotal, packagingFee, deliveryFee, finalAmount),
+                            itemsTotal, packagingFee, deliveryFee, finalAmount, discountInfo),
                     Instant.parse("2025-11-05T02:27:30.745152Z"));
         });
 
         // Mock GetOrderService
         when(getOrderService.getOrder(any())).thenAnswer(invocation -> {
             GetOrderService.GetOrderQuery query = invocation.getArgument(0);
+            DiscountInfomDto discountInfo = new GetOrderService.GetOrderResult.PricingDto.DiscountInfomDto(
+                    false, null, BigDecimal.ZERO, null);
 
             if ("order-id-1".equals(query.orderId())) {
                 return new GetOrderService.GetOrderResult(
@@ -61,7 +67,8 @@ public abstract class OrdersBase extends ContractTestBase {
                                 new BigDecimal("50.00"),
                                 new BigDecimal("1.00"),
                                 new BigDecimal("3.00"),
-                                new BigDecimal("54.00")),
+                                new BigDecimal("54.00"),
+                                discountInfo),
                         Instant.parse("2025-11-05T02:27:30.745152Z"));
             } else {
                 throw new OrderNotFoundException("订单不存在");

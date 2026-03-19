@@ -1,10 +1,14 @@
 package com.example.demo.domain.order;
 
 import com.example.demo.domain.Identities;
+import com.example.demo.domain.discount.Discount;
 import com.example.demo.domain.merchant.MerchantId;
 import com.example.demo.domain.user.UserId;
+
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+
 import lombok.Getter;
 
 @Getter
@@ -23,6 +27,12 @@ public class Order {
 
     public Order(
             UserId userId, MerchantId merchantId, List<OrderItem> items, DeliveryInfo deliveryInfo, String remark) {
+        this(userId, merchantId, items, deliveryInfo, remark, Optional.empty());
+    }
+
+    public Order(
+            UserId userId, MerchantId merchantId, List<OrderItem> items, DeliveryInfo deliveryInfo, String remark,
+            Optional<Discount> discount) {
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("订单必须至少包含一个餐品");
         }
@@ -39,7 +49,7 @@ public class Order {
         this.deliveryInfo = deliveryInfo;
         this.remark = remark;
         this.status = OrderStatus.PENDING_PAYMENT;
-        this.pricing = Pricing.calculate(items);
+        this.pricing = Pricing.calculate(items, discount);
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }

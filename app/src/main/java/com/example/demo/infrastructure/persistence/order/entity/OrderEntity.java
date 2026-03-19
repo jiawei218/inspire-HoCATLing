@@ -49,10 +49,15 @@ public class OrderEntity {
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "itemsTotal", column = @Column(name = "items_total")),
-        @AttributeOverride(name = "packagingFee", column = @Column(name = "packaging_fee")),
-        @AttributeOverride(name = "deliveryFee", column = @Column(name = "delivery_fee")),
-        @AttributeOverride(name = "finalAmount", column = @Column(name = "final_amount"))
+            @AttributeOverride(name = "itemsTotal", column = @Column(name = "items_total")),
+            @AttributeOverride(name = "packagingFee", column = @Column(name = "packaging_fee")),
+            @AttributeOverride(name = "deliveryFee", column = @Column(name = "delivery_fee")),
+            @AttributeOverride(name = "finalAmount", column = @Column(name = "final_amount")),
+            @AttributeOverride(name = "discountInfo.hasDiscount", column = @Column(name = "discount_applied")),
+            @AttributeOverride(name = "discountInfo.description", column = @Column(name = "discount_description")),
+            @AttributeOverride(name = "discountInfo.amount", column = @Column(name = "discount_amount")),
+            @AttributeOverride(name = "discountInfo.type", column = @Column(name = "discount_type"))
+
     })
     private PricingEmbeddable pricing;
 

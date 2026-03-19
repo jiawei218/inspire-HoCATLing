@@ -23,6 +23,14 @@ public record FullReductionDiscount(BigDecimal threshold, BigDecimal discountAmo
     }
   }
 
+  public BigDecimal getThreshold() {
+    return threshold;
+  }
+
+  public BigDecimal getDiscountAmount() {
+    return discountAmount;
+  }
+
   @Override
   public DiscountType getType() {
     return DiscountType.FULL_REDUCTION;
@@ -39,7 +47,7 @@ public record FullReductionDiscount(BigDecimal threshold, BigDecimal discountAmo
     // 满减的计算逻辑，根据实际需求实现
     // 例如：满100减20，满200减50等
     if (itemsTotal.compareTo(threshold) >= 0) {
-      return Optional.of(discountAmount.setScale(2, java.math.RoundingMode.HALF_UP));
+      return Optional.of(discountAmount);
     }
     return Optional.empty();
   }

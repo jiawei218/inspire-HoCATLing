@@ -79,7 +79,8 @@ public class OrderJpaRepository implements OrderRepository {
                                 order.getPricing().itemsTotal(),
                                 order.getPricing().packagingFee(),
                                 order.getPricing().deliveryFee(),
-                                order.getPricing().finalAmount());
+                                order.getPricing().finalAmount(),
+                                order.getPricing().discountInfo());
                 entity.setPricing(pricingEmbeddable);
 
                 entity.setCreatedAt(order.getCreatedAt());

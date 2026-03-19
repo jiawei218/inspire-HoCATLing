@@ -20,6 +20,6 @@ public record OrderItem(DishId dishId, String dishName, int quantity, BigDecimal
     }
 
     public BigDecimal subtotal() {
-        return price.multiply(BigDecimal.valueOf(quantity)).setScale(2, java.math.RoundingMode.HALF_UP);
+        return price.multiply(BigDecimal.valueOf(quantity));
     }
 }

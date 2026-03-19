@@ -1,5 +1,6 @@
 package com.example.demo.application.service;
 
+import com.example.demo.domain.discount.DiscountType;
 import com.example.demo.domain.order.Order;
 import com.example.demo.domain.order.OrderId;
 import com.example.demo.domain.order.OrderRepository;
@@ -18,72 +19,87 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class GetOrderService {
 
-    private final OrderRepository orderRepository;
+        private final OrderRepository orderRepository;
 
-    public record GetOrderQuery(@NotNull String orderId, @NotNull String userId) {}
-
-    public record GetOrderResult(
-            String orderId,
-            String orderNumber,
-            String userId,
-            String merchantId,
-            List<OrderItemDto> items,
-            DeliveryInfoDto deliveryInfo,
-            String remark,
-            String status,
-            PricingDto pricing,
-            Instant createdAt) {
-        public record OrderItemDto(String dishId, String dishName, Integer quantity, BigDecimal price) {}
-
-        public record DeliveryInfoDto(String recipientName, String recipientPhone, String address) {}
-
-        public record PricingDto(
-                BigDecimal itemsTotal, BigDecimal packagingFee, BigDecimal deliveryFee, BigDecimal finalAmount) {}
-    }
-
-    @Transactional(readOnly = true)
-    public GetOrderResult getOrder(GetOrderQuery query) {
-        // Query order by orderId
-        Order order = orderRepository
-                .findById(new OrderId(query.orderId()))
-                .orElseThrow(() -> new OrderNotFoundException("订单不存在: " + query.orderId()));
-
-        // Verify order ownership
-        if (!order.getUserId().value().equals(query.userId())) {
-            throw new OrderNotFoundException("订单不存在: " + query.orderId());
+        public record GetOrderQuery(@NotNull String orderId, @NotNull String userId) {
         }
 
-        // Convert Order domain object to GetOrderResult
-        return convertToResult(order);
-    }
+        public record GetOrderResult(
+                        String orderId,
+                        String orderNumber,
+                        String userId,
+                        String merchantId,
+                        List<OrderItemDto> items,
+                        DeliveryInfoDto deliveryInfo,
+                        String remark,
+                        String status,
+                        PricingDto pricing,
+                        Instant createdAt) {
+                public record OrderItemDto(String dishId, String dishName, Integer quantity, BigDecimal price) {
+                }
 
-    private GetOrderResult convertToResult(Order order) {
-        List<GetOrderResult.OrderItemDto> itemDtos = order.getItems().stream()
-                .map(item -> new GetOrderResult.OrderItemDto(
-                        item.dishId().value(), item.dishName(), item.quantity(), item.price()))
-                .toList();
+                public record DeliveryInfoDto(String recipientName, String recipientPhone, String address) {
+                }
 
-        GetOrderResult.DeliveryInfoDto deliveryInfoDto = new GetOrderResult.DeliveryInfoDto(
-                order.getDeliveryInfo().recipientName(),
-                order.getDeliveryInfo().recipientPhone(),
-                order.getDeliveryInfo().address());
+                public record PricingDto(
+                                BigDecimal itemsTotal, BigDecimal packagingFee, BigDecimal deliveryFee,
+                                BigDecimal finalAmount, DiscountInfomDto discountInfo) {
+                        public record DiscountInfomDto(
+                                        boolean hasDiscount,
+                                        String description,
+                                        BigDecimal amount,
+                                        DiscountType type) {
+                        }
+                }
+        }
 
-        GetOrderResult.PricingDto pricingDto = new GetOrderResult.PricingDto(
-                order.getPricing().itemsTotal(),
-                order.getPricing().packagingFee(),
-                order.getPricing().deliveryFee(),
-                order.getPricing().finalAmount());
+        @Transactional(readOnly = true)
+        public GetOrderResult getOrder(GetOrderQuery query) {
+                // Query order by orderId
+                Order order = orderRepository
+                                .findById(new OrderId(query.orderId()))
+                                .orElseThrow(() -> new OrderNotFoundException("订单不存在: " + query.orderId()));
 
-        return new GetOrderResult(
-                order.getId().value(),
-                order.getOrderNumber().value(),
-                order.getUserId().value(),
-                order.getMerchantId().value(),
-                itemDtos,
-                deliveryInfoDto,
-                order.getRemark(),
-                order.getStatus().name(),
-                pricingDto,
-                order.getCreatedAt());
-    }
+                // Verify order ownership
+                if (!order.getUserId().value().equals(query.userId())) {
+                        throw new OrderNotFoundException("订单不存在: " + query.orderId());
+                }
+
+                // Convert Order domain object to GetOrderResult
+                return convertToResult(order);
+        }
+
+        private GetOrderResult convertToResult(Order order) {
+                List<GetOrderResult.OrderItemDto> itemDtos = order.getItems().stream()
+                                .map(item -> new GetOrderResult.OrderItemDto(
+                                                item.dishId().value(), item.dishName(), item.quantity(), item.price()))
+                                .toList();
+
+                GetOrderResult.DeliveryInfoDto deliveryInfoDto = new GetOrderResult.DeliveryInfoDto(
+                                order.getDeliveryInfo().recipientName(),
+                                order.getDeliveryInfo().recipientPhone(),
+                                order.getDeliveryInfo().address());
+
+                GetOrderResult.PricingDto pricingDto = new GetOrderResult.PricingDto(
+                                order.getPricing().itemsTotal(),
+                                order.getPricing().packagingFee(),
+                                order.getPricing().deliveryFee(),
+                                order.getPricing().finalAmount(), new GetOrderResult.PricingDto.DiscountInfomDto(
+                                                order.getPricing().discountInfo().applyDiscount(),
+                                                order.getPricing().discountInfo().getDescription(),
+                                                order.getPricing().discountInfo().getAmount(),
+                                                order.getPricing().discountInfo().getType()));
+
+                return new GetOrderResult(
+                                order.getId().value(),
+                                order.getOrderNumber().value(),
+                                order.getUserId().value(),
+                                order.getMerchantId().value(),
+                                itemDtos,
+                                deliveryInfoDto,
+                                order.getRemark(),
+                                order.getStatus().name(),
+                                pricingDto,
+                                order.getCreatedAt());
+        }
 }
